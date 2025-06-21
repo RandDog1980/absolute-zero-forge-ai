@@ -1,0 +1,356 @@
+Complete Supabase Configuration Manual for Absolute-0.AI Platform
+This comprehensive manual will walk you through every step needed to configure Supabase to make all features of the Absolute-0.AI platform work perfectly.
+
+Table of Contents
+Initial Supabase Setup
+Database Configuration
+Authentication Setup
+Edge Functions Configuration
+Storage Configuration
+Real-time Features
+Security & RLS Policies
+Environment Variables & Secrets
+Monitoring & Health Checks
+Troubleshooting Common Issues
+1. Initial Supabase Setup
+Step 1.1: Create Supabase Account
+Go to supabase.com
+Click "Start your project" or "Sign Up"
+Sign up using GitHub, Google, or email
+Verify your email if using email signup
+Step 1.2: Create New Project
+After login, click "New Project"
+Choose your organization (or create one)
+Fill in project details:
+Name: absolute-0-ai (or your preferred name)
+Database Password: Generate a strong password and save it securely
+Region: Choose closest to your users
+Pricing Plan: Start with Free tier, upgrade as needed
+Click "Create new project"
+Wait 2-3 minutes for project initialization
+Step 1.3: Get Project Credentials
+In your project dashboard, go to Settings → API
+Copy and save these values:
+Project URL: https://[project-id].supabase.co
+Anon (public) Key: eyJ... (long string)
+Service Role Key: eyJ... (keep this secret!)
+2. Database Configuration
+Step 2.1: Access SQL Editor
+In Supabase dashboard, click "SQL Editor" in left sidebar
+You'll see the SQL editor interface
+Step 2.2: Run Initial Migrations
+The platform requires specific tables. Execute these SQL commands one by one:
+
+A. Enable Extensions
+
+-- Enable required extensions
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+CREATE EXTENSION IF NOT EXISTS "pg_cron";
+CREATE EXTENSION IF NOT EXISTS "pg_net";
+B. Create User Profiles Table
+
+-- Create profiles table
+CREATE TABLE public.profiles (
+  id UUID REFERENCES auth.users(id) ON DELETE CASCADE PRIMARY KEY,
+  email TEXT,
+  full_name TEXT,
+  avatar_url TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Enable RLS
+ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
+
+-- Create policies
+CREATE POLICY "Users can view own profile" ON public.profiles
+  FOR SELECT USING (auth.uid() = id);
+
+CREATE POLICY "Users can update own profile" ON public.profiles
+  FOR UPDATE USING (auth.uid() = id);
+
+CREATE POLICY "Users can insert own profile" ON public.profiles
+  FOR INSERT WITH CHECK (auth.uid() = id);
+C. Create Profile Auto-Creation Function
+
+-- Function to handle new user profile creation
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS TRIGGER AS $$
+BEGIN
+  INSERT INTO public.profiles (id, email, full_name)
+  VALUES (
+    NEW.id,
+    NEW.email,
+    COALESCE(NEW.raw_user_meta_data->>'full_name', NEW.raw_user_meta_data->>'name', NEW.email)
+  );
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Trigger for automatic profile creation
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+D. Create AI Agents Table
+
+-- Create AI agents table
+CREATE TABLE public.ai_agents (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+  name TEXT NOT NULL,
+  description TEXT,
+  type TEXT NOT NULL,
+  status TEXT DEFAULT 'idle' CHECK (status IN ('active', 'idle', 'paused')),
+  configuration JSONB DEFAULT '{}',
+  tasks_completed INTEGER DEFAULT 0,
+  specialization TEXT CHECK (specialization IN ('design', 'development', 'testing', 'deployment')),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Enable RLS and policies for AI agents
+ALTER TABLE public.ai_agents ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can view own agents" ON public.ai_agents
+  FOR SELECT USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can create own agents" ON public.ai_agents
+  FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update own agents" ON public.ai_agents
+  FOR UPDATE USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can delete own agents" ON public.ai_agents
+  FOR DELETE USING (auth.uid() = user_id);
+Step 2.3: Set Up Real-time for Tables
+Still in SQL Editor, enable real-time for your tables:
+
+-- Enable real-time for ai_agents table
+ALTER TABLE public.ai_agents REPLICA IDENTITY FULL;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.ai_agents;
+
+-- Enable real-time for profiles table
+ALTER TABLE public.profiles REPLICA IDENTITY FULL;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.profiles;
+3. Authentication Setup
+Step 3.1: Configure Auth Settings
+Go to Authentication → Settings in left sidebar
+Configure these settings:
+Site URL Configuration
+Site URL: Enter your app's URL (e.g., https://your-app.com or for development: http://localhost:3000)
+Email Templates (Optional but Recommended)
+Click "Email Templates" tab
+Customize the confirmation and recovery email templates
+Update sender name and email address
+Step 3.2: Configure Auth Providers
+Email/Password (Default - Already Enabled)
+This is enabled by default
+You can customize password requirements in Authentication → Settings
+Google OAuth (Optional)
+Go to Authentication → Providers
+Find Google and click the toggle to enable
+You'll need to set up Google OAuth:
+Go to Google Cloud Console
+Create a new project or select existing
+Enable Google+ API
+Create OAuth 2.0 credentials
+Set authorized origins and redirect URLs
+Copy Client ID and Client Secret to Supabase
+GitHub OAuth (Optional)
+In Authentication → Providers, enable GitHub
+Go to GitHub → Settings → Developer settings → OAuth Apps
+Create a new OAuth App
+Set Authorization callback URL to your Supabase auth callback
+Copy Client ID and Client Secret to Supabase
+Step 3.3: URL Configuration
+In Authentication → URL Configuration:
+Site URL: https://your-domain.com (production) or http://localhost:3000 (development)
+Redirect URLs: Add all domains where your app will be hosted
+Wildcard domains: Add *.vercel.app if using Vercel for deployments
+4. Edge Functions Configuration
+Step 4.1: Enable Edge Functions
+Go to Edge Functions in the left sidebar
+Edge Functions should be enabled by default on new projects
+Step 4.2: Set Up Required Secrets
+Go to Edge Functions → Settings
+Add these environment variables (secrets):
+Essential Secrets:
+SUPABASE_URL: Your project URL
+SUPABASE_ANON_KEY: Your anon public key
+SUPABASE_SERVICE_ROLE_KEY: Your service role key
+OPENAI_API_KEY: Your OpenAI API key (get from OpenAI Platform)
+Payment Integration (if using):
+PAYFAST_MERCHANT_ID: Your PayFast merchant ID
+PAYFAST_MERCHANT_KEY: Your PayFast merchant key
+PAYFAST_PASSPHRASE: Your PayFast passphrase
+Step 4.3: Deploy Edge Functions
+The platform includes several edge functions that should auto-deploy:
+
+check-subscription: Handles subscription verification
+create-checkout: Creates payment checkout sessions
+customer-portal: Manages customer subscription portal
+payfast-webhook: Handles PayFast payment webhooks
+config-check: Health check function
+5. Storage Configuration
+Step 5.1: Enable Storage
+Go to Storage in the left sidebar
+Storage is enabled by default
+Step 5.2: Create Storage Buckets (If Needed)
+If your application needs file storage:
+
+Click "Create bucket"
+Configure bucket settings:
+Name: Choose descriptive name (e.g., avatars, documents)
+Public: Enable if files should be publicly accessible
+File size limit: Set appropriate limit
+Allowed MIME types: Restrict file types if needed
+Step 5.3: Set Up Storage Policies
+
+-- Example: Create storage policies for avatar bucket
+CREATE POLICY "Avatar images are publicly accessible"
+  ON storage.objects FOR SELECT 
+  USING ( bucket_id = 'avatars' );
+
+CREATE POLICY "Users can upload their own avatar"
+  ON storage.objects FOR INSERT
+  WITH CHECK ( bucket_id = 'avatars' AND auth.uid()::text = (storage.foldername(name))[1] );
+6. Real-time Features
+Step 6.1: Enable Real-time
+Real-time is enabled by default
+Go to Database → Replication to see active publications
+Step 6.2: Configure Real-time Settings
+In Settings → API, ensure Real-time is enabled
+Check that tables are added to supabase_realtime publication:
+
+-- Verify tables are in real-time publication
+SELECT * FROM pg_publication_tables WHERE pubname = 'supabase_realtime';
+7. Security & RLS Policies
+Step 7.1: Review RLS Policies
+Go to Authentication → Policies
+Ensure all tables have appropriate RLS policies
+Test policies work correctly
+Step 7.2: Create User Roles System
+
+-- Create role enum
+CREATE TYPE public.user_role AS ENUM ('user', 'admin', 'superuser');
+
+-- Create user roles table
+CREATE TABLE public.user_roles (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+  role user_role NOT NULL DEFAULT 'user',
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  UNIQUE(user_id, role)
+);
+
+-- Enable RLS
+ALTER TABLE public.user_roles ENABLE ROW LEVEL SECURITY;
+
+-- Security definer function to check roles
+CREATE OR REPLACE FUNCTION public.has_role(_user_id UUID, _role user_role)
+RETURNS BOOLEAN
+LANGUAGE SQL
+STABLE
+SECURITY DEFINER
+AS $$
+  SELECT EXISTS (
+    SELECT 1
+    FROM public.user_roles
+    WHERE user_id = _user_id AND role = _role
+  )
+$$;
+8. Environment Variables & Secrets
+Step 8.1: Configure Application Secrets
+In Settings → Edge Functions → Environment Variables
+Add all required secrets:
+| Secret Name | Description | Where to Get | |-------------|-------------|--------------| | OPENAI_API_KEY | OpenAI API access | OpenAI Platform | | SUPABASE_URL | Your project URL | Settings → API | | SUPABASE_ANON_KEY | Public key | Settings → API | | SUPABASE_SERVICE_ROLE_KEY | Service key | Settings → API | | PAYFAST_MERCHANT_ID | PayFast merchant ID | PayFast dashboard | | PAYFAST_MERCHANT_KEY | PayFast merchant key | PayFast dashboard | | PAYFAST_PASSPHRASE | PayFast passphrase | PayFast dashboard |
+
+Step 8.2: Configure Webhook URLs
+For PayFast integration, set webhook URL to: https://your-project-id.supabase.co/functions/v1/payfast-webhook
+9. Monitoring & Health Checks
+Step 9.1: Set Up Database Monitoring
+Go to Reports in left sidebar
+Review key metrics:
+API requests
+Database performance
+Real-time connections
+Storage usage
+Step 9.2: Configure Alerts (Pro Plan)
+In Settings → Alerts
+Set up alerts for:
+High API usage
+Database connection limits
+Error rates
+Step 9.3: Test Health Check Function
+Go to Edge Functions
+Find config-check function
+Click to test and verify it returns healthy status
+10. Troubleshooting Common Issues
+Issue 1: "new row violates row-level security policy"
+Solution:
+
+Ensure user_id columns are not nullable
+Check RLS policies allow the operation
+Verify user is authenticated when making requests
+Issue 2: Authentication redirects not working
+Solution:
+
+Go to Authentication → URL Configuration
+Add your domain to Redirect URLs
+Ensure Site URL is correct
+Issue 3: Edge Functions failing
+Solution:
+
+Check Edge Functions → Logs for errors
+Verify all required secrets are set
+Test functions individually
+Issue 4: Real-time not working
+Solution:
+
+
+-- Ensure table is in publication
+ALTER PUBLICATION supabase_realtime ADD TABLE your_table_name;
+-- Ensure replica identity
+ALTER TABLE your_table_name REPLICA IDENTITY FULL;
+Issue 5: Storage upload failures
+Solution:
+
+Check bucket policies allow uploads
+Verify file size limits
+Ensure proper MIME type restrictions
+Final Verification Checklist
+Before going live, verify:
+
+[ ] All database tables created with proper RLS policies
+[ ] User registration and login working
+[ ] Edge functions deployed and responding
+[ ] Real-time features working for required tables
+[ ] Storage buckets configured if needed
+[ ] All secrets and environment variables set
+[ ] Health check returning all green status
+[ ] Webhook URLs configured for payment processing
+[ ] Monitoring and alerts set up
+Production Deployment Notes
+Before Going to Production:
+Upgrade Plan: Consider upgrading from Free tier based on usage
+Backups: Enable automated backups in Settings → Database
+Custom Domain: Set up custom domain if desired
+SSL: Ensure all connections use HTTPS
+Rate Limiting: Configure appropriate rate limits
+Security Review: Review all RLS policies and access controls
+Post-Deployment:
+Monitor performance metrics regularly
+Set up log aggregation for debugging
+Implement proper error handling in your application
+Test disaster recovery procedures
+Keep dependencies updated
+This manual covers every aspect of Supabase configuration needed for the Absolute-0.AI platform. Follow each section carefully, and your platform will be fully functional with all features working correctly.
+
+
+
+Ask Lovable...
+
+Edit
+Chat
+
