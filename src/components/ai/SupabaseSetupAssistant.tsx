@@ -18,7 +18,8 @@ import {
   Server,
   Activity
 } from 'lucide-react';
-import { SupabaseHealthService, ComprehensiveHealthReport } from '@/services/SupabaseHealthService';
+import { SupabaseHealthService } from '@/services/supabase/SupabaseHealthService';
+import { ComprehensiveHealthReport } from '@/services/supabase/types';
 import { useToast } from '@/hooks/use-toast';
 
 const SupabaseSetupAssistant = () => {
