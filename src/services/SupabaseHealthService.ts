@@ -17,6 +17,10 @@ export interface ComprehensiveHealthReport {
   timestamp: string;
 }
 
+// Configuration constants
+const SUPABASE_URL = "https://rnhtpciitjycpqqimgce.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJuaHRwY2lpdGp5Y3BxcWltZ2NlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDk5NTE2NTksImV4cCI6MjA2NTUyNzY1OX0.9ZkfiUQ43jLzi-WHeRxX6NB_VvoAvouQvy1o2XO5tdA";
+
 export class SupabaseHealthService {
   static async runComprehensiveHealthCheck(): Promise<ComprehensiveHealthReport> {
     console.log('🔍 Starting Comprehensive Supabase Health Check...');
@@ -223,7 +227,7 @@ export class SupabaseHealthService {
         message: 'API configuration and REST endpoints operational',
         details: { 
           testQuery: 'ai_agents table access',
-          apiUrl: supabase.supabaseUrl
+          apiUrl: SUPABASE_URL
         },
         timestamp: new Date().toISOString()
       };
@@ -320,19 +324,19 @@ export class SupabaseHealthService {
     const details: any = {};
 
     // Check URL configuration
-    if (!supabase.supabaseUrl || supabase.supabaseUrl.includes('localhost')) {
-      if (supabase.supabaseUrl.includes('localhost')) {
+    if (!SUPABASE_URL || SUPABASE_URL.includes('localhost')) {
+      if (SUPABASE_URL.includes('localhost')) {
         details.environment = 'development';
       } else {
         issues.push('Invalid Supabase URL configuration');
       }
     } else {
       details.environment = 'production';
-      details.supabaseUrl = supabase.supabaseUrl;
+      details.supabaseUrl = SUPABASE_URL;
     }
 
     // Check key configuration
-    if (!supabase.supabaseKey) {
+    if (!SUPABASE_ANON_KEY) {
       issues.push('Missing Supabase anon key');
     } else {
       details.hasAnonKey = true;
