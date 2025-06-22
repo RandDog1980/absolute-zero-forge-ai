@@ -12,21 +12,24 @@ const PredefinedAgents = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedAgent, setSelectedAgent] = useState<PredefinedAgent | null>(null);
 
+  // Ensure predefinedAgents is always an array
+  const agentsArray = Array.isArray(predefinedAgents) ? predefinedAgents : [];
+
   const categories = [
-    { id: 'all', label: 'All Agents', count: predefinedAgents.length },
-    { id: 'popular', label: 'Popular', count: predefinedAgents.filter(agent => agent.popular).length },
-    { id: 'technical', label: 'Technical', count: predefinedAgents.filter(agent => agent.category === 'technical').length },
-    { id: 'creative', label: 'Creative', count: predefinedAgents.filter(agent => agent.category === 'creative').length },
-    { id: 'business', label: 'Business', count: predefinedAgents.filter(agent => agent.category === 'business').length },
-    { id: 'support', label: 'Support', count: predefinedAgents.filter(agent => agent.category === 'support').length },
-    { id: 'database', label: 'Database', count: predefinedAgents.filter(agent => agent.category === 'database').length }
+    { id: 'all', label: 'All Agents', count: agentsArray.length },
+    { id: 'popular', label: 'Popular', count: agentsArray.filter(agent => agent.popular).length },
+    { id: 'technical', label: 'Technical', count: agentsArray.filter(agent => agent.category === 'technical').length },
+    { id: 'creative', label: 'Creative', count: agentsArray.filter(agent => agent.category === 'creative').length },
+    { id: 'business', label: 'Business', count: agentsArray.filter(agent => agent.category === 'business').length },
+    { id: 'support', label: 'Support', count: agentsArray.filter(agent => agent.category === 'support').length },
+    { id: 'database', label: 'Database', count: agentsArray.filter(agent => agent.category === 'database').length }
   ];
 
   const filteredAgents = selectedCategory === 'all' 
-    ? predefinedAgents
+    ? agentsArray
     : selectedCategory === 'popular'
-    ? predefinedAgents.filter(agent => agent.popular)
-    : predefinedAgents.filter(agent => agent.category === selectedCategory);
+    ? agentsArray.filter(agent => agent.popular)
+    : agentsArray.filter(agent => agent.category === selectedCategory);
 
   const handleAgentSelect = (agent: PredefinedAgent) => {
     setSelectedAgent(agent);
@@ -62,7 +65,8 @@ const PredefinedAgents = () => {
                 <AgentCard
                   key={agent.id}
                   agent={agent}
-                  onSelect={handleAgentSelect}
+                  selected={selectedAgent?.id === agent.id}
+                  onSelect={() => handleAgentSelect(agent)}
                 />
               ))}
             </div>
