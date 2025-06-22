@@ -93,7 +93,7 @@ const PredefinedAgents = () => {
         }
       } else {
         // Activate existing agent
-        const { error: updateError } = await sulabase
+        const { error: updateError } = await supabase
           .from('ai_agents')
           .update({ status: 'active' })
           .eq('id', existingAgent.id);

@@ -6,12 +6,12 @@ import { useToast } from '@/hooks/use-toast';
 const LLMProviders = () => {
   const { toast } = useToast();
 
-  const handleLock = (providerId: string) => {
+  const handleLock = () => {
     // Implement actual locking functionality
-    console.log(`Locking provider: ${providerId}`);
+    console.log(`Locking provider for exclusive use`);
     toast({
       title: "Provider Locked",
-      description: `${providerId} has been locked for exclusive use.`,
+      description: "Provider has been locked for exclusive use.",
     });
   };
 
