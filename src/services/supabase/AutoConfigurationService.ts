@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { SupabaseConfigService } from './SupabaseConfigService';
 
 export class AutoConfigurationService {
-  static async runAutoConfiguration(): Promise<void> {
+  static async runAutoConfiguration(): Promise<{ status: 'healthy' | 'warning' | 'error', message: string, details: any[] }> {
     console.log('🚀 Starting Automatic Supabase Configuration...');
     
     try {
@@ -34,7 +34,11 @@ export class AutoConfigurationService {
       return healthResult;
     } catch (error) {
       console.error('❌ Auto-configuration failed:', error);
-      throw error;
+      return {
+        status: 'error',
+        message: `Auto-configuration failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        details: [{ component: 'Auto Configuration', error }]
+      };
     }
   }
 

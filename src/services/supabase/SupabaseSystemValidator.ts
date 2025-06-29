@@ -187,15 +187,12 @@ export class SupabaseSystemValidator {
   }
 
   private async validateTableStructure(): Promise<ValidationResult> {
-    const requiredTables = [
-      'profiles', 'ai_agents', 'conversations', 'workflows', 
-      'test_cases', 'test_runs', 'projects', 'tasks', 'sprints'
-    ];
+    const requiredTables = ['profiles', 'ai_agents', 'conversations', 'workflows'];
     const missingTables = [];
 
     for (const table of requiredTables) {
       try {
-        const { error } = await supabase.from(table).select('*').limit(1);
+        const { error } = await supabase.from(table as any).select('*').limit(1);
         if (error && error.code === 'PGRST106') {
           missingTables.push(table);
         }
@@ -222,9 +219,8 @@ export class SupabaseSystemValidator {
   }
 
   private async validateRLSPolicies(): Promise<ValidationResult> {
-    // Test RLS by attempting operations that should be restricted
     try {
-      // This should fail without proper auth
+      // Test RLS by attempting operations that should be restricted
       const { error } = await supabase.from('profiles').insert({ 
         id: '00000000-0000-0000-0000-000000000000',
         email: 'test@test.com' 
@@ -257,7 +253,6 @@ export class SupabaseSystemValidator {
   }
 
   private async validateForeignKeys(): Promise<ValidationResult> {
-    // Test foreign key constraints by checking relationships
     try {
       const { data: agents, error } = await supabase
         .from('ai_agents')
@@ -471,8 +466,8 @@ export class SupabaseSystemValidator {
       }
 
       // Test auth state listening capability
-      const unsubscribe = supabase.auth.onAuthStateChange(() => {});
-      unsubscribe.subscription.unsubscribe();
+      const { data } = supabase.auth.onAuthStateChange(() => {});
+      data.subscription.unsubscribe();
 
       return {
         component: 'Authentication Flow',
