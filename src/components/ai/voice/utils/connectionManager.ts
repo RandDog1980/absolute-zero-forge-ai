@@ -26,13 +26,10 @@ export const createSSEConnection = async (baseUrl: string, sessionId: string): P
 
   const accessToken = session.access_token;
   console.log('✅ Access token retrieved successfully');
-  console.log('Token length:', accessToken.length);
-  console.log('Token preview:', accessToken.substring(0, 20) + '...');
-  console.log('Creating SSE connection to:', `${baseUrl}?session=${sessionId}`);
   
   // EventSource doesn't support custom headers directly, so we need to pass the token as a query parameter
   const urlWithAuth = `${baseUrl}?session=${sessionId}&token=${encodeURIComponent(accessToken)}`;
-  console.log('Full URL (token masked):', urlWithAuth.replace(/token=[^&]+/, 'token=***'));
+  console.log('Creating SSE connection to:', baseUrl);
   
   const eventSource = new EventSource(urlWithAuth);
   

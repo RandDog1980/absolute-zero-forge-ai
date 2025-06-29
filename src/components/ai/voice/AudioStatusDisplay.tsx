@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Mic, MicOff, Volume2, VolumeX } from 'lucide-react';
+import { Mic, Volume2 } from 'lucide-react';
 
 interface AudioStatusDisplayProps {
   isRecording: boolean;
@@ -12,39 +12,31 @@ const AudioStatusDisplay: React.FC<AudioStatusDisplayProps> = ({
   isSpeaking
 }) => {
   return (
-    <div className="grid grid-cols-2 gap-4">
-      <div className="flex items-center justify-center p-4 border rounded-lg">
-        <div className="flex items-center gap-2">
-          {isRecording ? (
-            <>
-              <Mic className="h-5 w-5 text-red-500" />
-              <span className="text-sm text-red-600">Listening</span>
-              <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
-            </>
-          ) : (
-            <>
-              <MicOff className="h-5 w-5 text-gray-400" />
-              <span className="text-sm text-gray-600">Not listening</span>
-            </>
-          )}
+    <div className="flex items-center justify-center gap-8">
+      <div className="flex flex-col items-center">
+        <div className={`p-4 rounded-full ${
+          isRecording 
+            ? 'bg-red-100 text-red-600 animate-pulse' 
+            : 'bg-gray-100 text-gray-400'
+        }`}>
+          <Mic className="h-8 w-8" />
         </div>
+        <span className="text-sm mt-2">
+          {isRecording ? 'Recording' : 'Microphone'}
+        </span>
       </div>
       
-      <div className="flex items-center justify-center p-4 border rounded-lg">
-        <div className="flex items-center gap-2">
-          {isSpeaking ? (
-            <>
-              <Volume2 className="h-5 w-5 text-blue-500" />
-              <span className="text-sm text-blue-600">AI Speaking</span>
-              <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse" />
-            </>
-          ) : (
-            <>
-              <VolumeX className="h-5 w-5 text-gray-400" />
-              <span className="text-sm text-gray-600">AI Silent</span>
-            </>
-          )}
+      <div className="flex flex-col items-center">
+        <div className={`p-4 rounded-full ${
+          isSpeaking 
+            ? 'bg-blue-100 text-blue-600 animate-pulse' 
+            : 'bg-gray-100 text-gray-400'
+        }`}>
+          <Volume2 className="h-8 w-8" />
         </div>
+        <span className="text-sm mt-2">
+          {isSpeaking ? 'AI Speaking' : 'Audio Output'}
+        </span>
       </div>
     </div>
   );

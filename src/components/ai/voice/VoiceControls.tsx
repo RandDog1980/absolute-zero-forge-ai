@@ -1,11 +1,11 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Mic, MicOff } from 'lucide-react';
+import { Mic, MicOff, Phone, PhoneOff } from 'lucide-react';
 
 interface VoiceControlsProps {
   isConnected: boolean;
-  connectionStatus: string;
+  connectionStatus: 'connected' | 'connecting' | 'disconnected' | 'error';
   onConnect: () => void;
   onDisconnect: () => void;
 }
@@ -16,32 +16,41 @@ const VoiceControls: React.FC<VoiceControlsProps> = ({
   onConnect,
   onDisconnect
 }) => {
+  if (!isConnected && connectionStatus !== 'connecting') {
+    return (
+      <Button 
+        onClick={onConnect}
+        className="bg-green-600 hover:bg-green-700 text-white"
+        size="lg"
+      >
+        <Phone className="h-5 w-5 mr-2" />
+        Start Voice Chat
+      </Button>
+    );
+  }
+
+  if (connectionStatus === 'connecting') {
+    return (
+      <Button 
+        disabled
+        className="bg-yellow-600 text-white"
+        size="lg"
+      >
+        <Mic className="h-5 w-5 mr-2 animate-pulse" />
+        Connecting...
+      </Button>
+    );
+  }
+
   return (
-    <div className="flex justify-center gap-4">
-      {!isConnected ? (
-        <Button 
-          onClick={onConnect}
-          className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3"
-          disabled={connectionStatus === 'connecting'}
-        >
-          {connectionStatus === 'connecting' ? (
-            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-          ) : (
-            <Mic className="h-4 w-4 mr-2" />
-          )}
-          {connectionStatus === 'connecting' ? 'Connecting...' : 'Start Voice Chat'}
-        </Button>
-      ) : (
-        <Button 
-          onClick={onDisconnect}
-          variant="outline"
-          className="px-8 py-3"
-        >
-          <MicOff className="h-4 w-4 mr-2" />
-          End Conversation
-        </Button>
-      )}
-    </div>
+    <Button 
+      onClick={onDisconnect}
+      variant="destructive"
+      size="lg"
+    >
+      <PhoneOff className="h-5 w-5 mr-2" />
+      End Voice Chat
+    </Button>
   );
 };
 
