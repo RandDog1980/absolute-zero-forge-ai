@@ -2,9 +2,11 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Database, Settings, Shield, Zap, Monitor, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { SupabaseConfigService } from '../../../services/supabase/SupabaseConfigService';
+import SystemValidationSection from './SystemValidationSection';
 
 const ConfigurationSections = () => {
   const [loadingStates, setLoadingStates] = useState<Record<string, boolean>>({});
@@ -123,85 +125,98 @@ const ConfigurationSections = () => {
 
   return (
     <div className="space-y-6">
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {sections.map((section) => (
-          <Card key={section.id} className="h-full">
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-lg">
-                {section.icon}
-                {section.title}
-                {completedSteps[section.id] && (
-                  <CheckCircle className="h-4 w-4 text-green-500" />
-                )}
+      <Tabs defaultValue="individual" className="space-y-4">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="individual">Individual Components</TabsTrigger>
+          <TabsTrigger value="comprehensive">Comprehensive Validation</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="individual" className="space-y-6">
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {sections.map((section) => (
+              <Card key={section.id} className="h-full">
+                <CardHeader className="pb-3">
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    {section.icon}
+                    {section.title}
+                    {completedSteps[section.id] && (
+                      <CheckCircle className="h-4 w-4 text-green-500" />
+                    )}
+                  </CardTitle>
+                  <CardDescription className="text-sm">
+                    {section.description}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <ul className="space-y-2">
+                    {section.steps.map((step, stepIndex) => (
+                      <li key={stepIndex} className="flex items-start gap-2 text-sm">
+                        <div className="w-1 h-1 rounded-full bg-indigo-500 mt-2 flex-shrink-0" />
+                        {step}
+                      </li>
+                    ))}
+                  </ul>
+                  <Button
+                    onClick={() => handleConfigStep(section.id, section.action)}
+                    disabled={loadingStates[section.id]}
+                    className="w-full"
+                    variant={completedSteps[section.id] ? "outline" : "default"}
+                  >
+                    {loadingStates[section.id] ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Configuring...
+                      </>
+                    ) : completedSteps[section.id] ? (
+                      <>
+                        <CheckCircle className="h-4 w-4 mr-2" />
+                        Configured
+                      </>
+                    ) : (
+                      `Configure ${section.title}`
+                    )}
+                  </Button>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Monitor className="h-5 w-5" />
+                System Health Check
               </CardTitle>
-              <CardDescription className="text-sm">
-                {section.description}
+              <CardDescription>
+                Run a comprehensive health check of all Supabase services
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <ul className="space-y-2">
-                {section.steps.map((step, stepIndex) => (
-                  <li key={stepIndex} className="flex items-start gap-2 text-sm">
-                    <div className="w-1 h-1 rounded-full bg-indigo-500 mt-2 flex-shrink-0" />
-                    {step}
-                  </li>
-                ))}
-              </ul>
+            <CardContent>
               <Button
-                onClick={() => handleConfigStep(section.id, section.action)}
-                disabled={loadingStates[section.id]}
+                onClick={handleHealthCheck}
+                disabled={loadingStates['health-check']}
                 className="w-full"
-                variant={completedSteps[section.id] ? "outline" : "default"}
               >
-                {loadingStates[section.id] ? (
+                {loadingStates['health-check'] ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Configuring...
-                  </>
-                ) : completedSteps[section.id] ? (
-                  <>
-                    <CheckCircle className="h-4 w-4 mr-2" />
-                    Configured
+                    Running Health Check...
                   </>
                 ) : (
-                  `Configure ${section.title}`
+                  <>
+                    <Monitor className="h-4 w-4 mr-2" />
+                    Run Complete Health Check
+                  </>
                 )}
               </Button>
             </CardContent>
           </Card>
-        ))}
-      </div>
+        </TabsContent>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Monitor className="h-5 w-5" />
-            System Health Check
-          </CardTitle>
-          <CardDescription>
-            Run a comprehensive health check of all Supabase services
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Button
-            onClick={handleHealthCheck}
-            disabled={loadingStates['health-check']}
-            className="w-full"
-          >
-            {loadingStates['health-check'] ? (
-              <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Running Health Check...
-              </>
-            ) : (
-              <>
-                <Monitor className="h-4 w-4 mr-2" />
-                Run Complete Health Check
-              </>
-            )}
-          </Button>
-        </CardContent>
-      </Card>
+        <TabsContent value="comprehensive">
+          <SystemValidationSection />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };
