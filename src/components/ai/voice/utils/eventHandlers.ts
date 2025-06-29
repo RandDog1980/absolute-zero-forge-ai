@@ -1,31 +1,26 @@
 
-import { AudioPlayer } from './audioPlayer';
-import { encodeAudioForAPI } from './audioRecorder';
-
 export interface VoiceEventHandlers {
   onConnectionOpen: () => void;
   onConnectionClose: () => void;
-  onConnectionError: (error: Event) => void;
-  onAudioDelta: (audioData: string) => void;
+  onConnectionError: (error: any) => void;
+  onAudioDelta: (audioData: string) => Promise<void>;
   onTranscriptDelta: (text: string) => void;
   onSpeakingStart: () => void;
   onSpeakingEnd: () => void;
 }
 
 export class VoiceEventManager {
-  private audioPlayer: AudioPlayer;
   private handlers: VoiceEventHandlers;
 
   constructor(handlers: VoiceEventHandlers) {
     this.handlers = handlers;
-    this.audioPlayer = new AudioPlayer();
   }
 
   async initialize() {
-    await this.audioPlayer.init();
+    console.log('🎯 VoiceEventManager initialized');
   }
 
-  async handleSSEMessage(event: MessageEvent) {
+  handleSSEMessage(event: MessageEvent) {
     try {
       const data = JSON.parse(event.data);
       console.log('📨 Received SSE message:', data.type);
@@ -34,82 +29,72 @@ export class VoiceEventManager {
         case 'connection_established':
           this.handlers.onConnectionOpen();
           break;
-
+          
         case 'openai_connected':
           console.log('✅ OpenAI connection established');
           break;
-
+          
         case 'response.audio.delta':
-          await this.handleAudioDelta(data.delta);
+          if (data.delta) {
+            this.handlers.onAudioDelta(data.delta);
+          }
           break;
-
+          
         case 'response.audio_transcript.delta':
-          this.handlers.onTranscriptDelta(data.delta);
+          if (data.delta) {
+            this.handlers.onTranscriptDelta(data.delta);
+          }
           break;
-
+          
         case 'response.audio.done':
           this.handlers.onSpeakingEnd();
           break;
-
-        case 'response.created':
-          this.handlers.onSpeakingStart();
+          
+        case 'input_audio_buffer.speech_started':
+          console.log('🎤 Speech started');
           break;
-
+          
+        case 'input_audio_buffer.speech_stopped':
+          console.log('🎤 Speech stopped');
+          break;
+          
         case 'error':
-          console.error('❌ Received error from server:', data.error);
-          this.handlers.onConnectionError(new Event('error'));
+          this.handlers.onConnectionError(data.error);
           break;
-
+          
         default:
-          console.log('📝 Unhandled message type:', data.type);
+          console.log('📨 Unhandled message type:', data.type);
       }
     } catch (error) {
       console.error('❌ Error parsing SSE message:', error);
-    }
-  }
-
-  private async handleAudioDelta(audioData: string) {
-    try {
-      const binaryString = atob(audioData);
-      const bytes = new Uint8Array(binaryString.length);
-      for (let i = 0; i < binaryString.length; i++) {
-        bytes[i] = binaryString.charCodeAt(i);
-      }
-      await this.audioPlayer.playAudioChunk(bytes);
-      this.handlers.onAudioDelta(audioData);
-    } catch (error) {
-      console.error('❌ Error playing audio delta:', error);
+      this.handlers.onConnectionError(error);
     }
   }
 
   destroy() {
-    this.audioPlayer.destroy();
+    console.log('🧹 VoiceEventManager destroyed');
   }
 }
 
 export const createAudioMessage = (audioData: Float32Array) => {
+  // Convert Float32Array to base64 encoded PCM16
+  const int16Array = new Int16Array(audioData.length);
+  for (let i = 0; i < audioData.length; i++) {
+    const s = Math.max(-1, Math.min(1, audioData[i]));
+    int16Array[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
+  }
+
+  const uint8Array = new Uint8Array(int16Array.buffer);
+  let binary = '';
+  const chunkSize = 0x8000;
+  
+  for (let i = 0; i < uint8Array.length; i += chunkSize) {
+    const chunk = uint8Array.subarray(i, Math.min(i + chunkSize, uint8Array.length));
+    binary += String.fromCharCode.apply(null, Array.from(chunk));
+  }
+  
   return {
     type: 'input_audio_buffer.append',
-    audio: encodeAudioForAPI(audioData)
+    audio: btoa(binary)
   };
-};
-
-export const createTextMessage = (text: string) => {
-  return {
-    type: 'conversation.item.create',
-    item: {
-      type: 'message',
-      role: 'user',
-      content: [
-        {
-          type: 'input_text',
-          text
-        }
-      ]
-    }
-  };
-};
-
-export const createResponseTrigger = () => {
-  return { type: 'response.create' };
 };

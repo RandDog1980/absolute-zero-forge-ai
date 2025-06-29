@@ -1,134 +1,143 @@
 
-// Updated diagnostics to use correct endpoint
+import { supabase } from '@/integrations/supabase/client';
+
 export class Absolute0AIDiagnostics {
-  static async checkSupabaseConnection(): Promise<{ success: boolean; details: any }> {
+  static async runFullDiagnostic() {
+    console.log('🔍 Starting Absolute-0.AI full diagnostic...');
+    
+    const results = {
+      overall: false,
+      supabase: { success: false, message: '', details: {} },
+      realtimeChat: { success: false, message: '', details: {} },
+      apiKey: { success: false, message: '', details: {} },
+      timestamp: new Date().toISOString()
+    };
+
     try {
-      const { supabase } = await import('@/integrations/supabase/client');
+      // Test Supabase connection
+      console.log('📡 Testing Supabase connection...');
+      const { data, error: dbError } = await supabase.from('profiles').select('count').limit(1);
       
-      // Test basic Supabase connection
-      const { data, error } = await supabase.auth.getSession();
-      
-      return {
-        success: !error,
-        details: {
-          connected: !error,
-          hasSession: !!data.session,
-          error: error?.message,
-          timestamp: new Date().toISOString()
+      if (dbError) {
+        results.supabase = {
+          success: false,
+          message: `Database connection failed: ${dbError.message}`,
+          details: { error: dbError.code, message: dbError.message }
+        };
+      } else {
+        results.supabase = {
+          success: true,
+          message: 'Supabase connection successful',
+          details: { status: 'connected' }
+        };
+      }
+
+      // Test realtime-chat edge function
+      console.log('⚡ Testing realtime-chat function...');
+      try {
+        const { data: functionData, error: functionError } = await supabase.functions.invoke('realtime-chat', {
+          body: { type: 'ping', message: 'Diagnostic test' }
+        });
+
+        if (functionError) {
+          results.realtimeChat = {
+            success: false,
+            message: `Edge function error: ${functionError.message}`,
+            details: { error: functionError }
+          };
+        } else if (functionData?.success) {
+          results.realtimeChat = {
+            success: true,
+            message: 'Realtime chat function operational',
+            details: { response: functionData }
+          };
+        } else {
+          results.realtimeChat = {
+            success: false,
+            message: 'Edge function returned unexpected response',
+            details: { response: functionData }
+          };
         }
-      };
+      } catch (error) {
+        results.realtimeChat = {
+          success: false,
+          message: `Edge function test failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          details: { error }
+        };
+      }
+
+      // Test API key configuration (indirectly)
+      console.log('🔑 Testing API key configuration...');
+      if (results.realtimeChat.success) {
+        results.apiKey = {
+          success: true,
+          message: 'API key appears to be configured correctly',
+          details: { status: 'configured' }
+        };
+      } else {
+        results.apiKey = {
+          success: false,
+          message: 'API key configuration cannot be verified - edge function failed',
+          details: { status: 'unknown' }
+        };
+      }
+
+      // Determine overall status
+      results.overall = results.supabase.success && results.realtimeChat.success && results.apiKey.success;
+
+      console.log('✅ Diagnostic completed:', results);
+      return results;
+
     } catch (error) {
+      console.error('❌ Diagnostic failed:', error);
       return {
-        success: false,
-        details: {
-          connected: false,
-          error: error instanceof Error ? error.message : 'Unknown connection error',
-          timestamp: new Date().toISOString()
-        }
+        ...results,
+        overall: false,
+        error: error instanceof Error ? error.message : 'Unknown diagnostic error'
       };
     }
   }
 
-  static async checkRealtimeChatFunction(): Promise<{ success: boolean; details: any }> {
+  static async testVoiceConnection(): Promise<{ success: boolean; message: string; details?: any }> {
     try {
-      const { supabase } = await import('@/integrations/supabase/client');
+      console.log('🎤 Testing voice connection...');
       
-      // Test the realtime-chat function with a ping
+      // Test if we can create an SSE connection to the realtime-chat function
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session?.access_token) {
+        return {
+          success: false,
+          message: 'No authentication session found',
+          details: { requiresAuth: true }
+        };
+      }
+
+      // Test the edge function with a ping
       const { data, error } = await supabase.functions.invoke('realtime-chat', {
-        body: { type: 'ping', message: 'Absolute-0.AI diagnostic test' }
+        body: { type: 'ping', message: 'Voice connection test' }
       });
 
-      return {
-        success: !error,
-        details: {
-          functionAvailable: !error,
-          responseData: data,
-          error: error?.message,
-          timestamp: new Date().toISOString()
-        }
-      };
-    } catch (error) {
-      return {
-        success: false,
-        details: {
-          functionAvailable: false,
-          error: error instanceof Error ? error.message : 'Function test failed',
-          timestamp: new Date().toISOString()
-        }
-      };
-    }
-  }
-
-  static async checkAPIKeyConfiguration(): Promise<{ success: boolean; details: any }> {
-    try {
-      const { supabase } = await import('@/integrations/supabase/client');
-      
-      // Use the config-check function to verify API key
-      const { data, error } = await supabase.functions.invoke('config-check');
-
-      if (!error && data?.configured) {
+      if (error) {
         return {
-          success: true,
-          details: {
-            apiKeyConfigured: data.configured,
-            keyName: 'ABSOLUTE_0_AI_CONVERSATIONAL_API_KEY',
-            validFormat: data.validFormat,
-            keyLength: data.keyLength,
-            timestamp: new Date().toISOString()
-          }
+          success: false,
+          message: `Voice connection test failed: ${error.message}`,
+          details: { error }
         };
       }
 
       return {
-        success: false,
-        details: {
-          apiKeyConfigured: false,
-          error: error?.message || 'Configuration check failed',
-          timestamp: new Date().toISOString()
-        }
+        success: true,
+        message: 'Voice connection system is operational',
+        details: { response: data }
       };
+
     } catch (error) {
       return {
         success: false,
-        details: {
-          apiKeyConfigured: false,
-          error: error instanceof Error ? error.message : 'Config check error',
-          timestamp: new Date().toISOString()
-        }
+        message: `Voice connection test error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        details: { error }
       };
     }
-  }
-
-  static async runFullDiagnostic(): Promise<{
-    overall: boolean;
-    supabase: any;
-    realtimeChat: any;
-    apiKey: any;
-    timestamp: string;
-  }> {
-    console.log('🔍 Running Absolute-0.AI Full System Diagnostic...');
-    
-    const [supabaseCheck, realtimeChatCheck, apiKeyCheck] = await Promise.all([
-      this.checkSupabaseConnection(),
-      this.checkRealtimeChatFunction(),
-      this.checkAPIKeyConfiguration()
-    ]);
-
-    const overall = supabaseCheck.success && realtimeChatCheck.success && apiKeyCheck.success;
-
-    console.log('📊 Absolute-0.AI Diagnostic Results:', {
-      overall,
-      supabase: supabaseCheck,
-      realtimeChat: realtimeChatCheck,
-      apiKey: apiKeyCheck
-    });
-
-    return {
-      overall,
-      supabase: supabaseCheck,
-      realtimeChat: realtimeChatCheck,
-      apiKey: apiKeyCheck,
-      timestamp: new Date().toISOString()
-    };
   }
 }
