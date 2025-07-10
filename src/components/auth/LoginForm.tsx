@@ -9,7 +9,7 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import authHero from "@/assets/auth-hero.jpg";
 
-export function LoginForm({ className, onSwitchToSignup, ...props }: React.ComponentProps<"div"> & { onSwitchToSignup?: () => void }) {
+export function LoginForm({ className, ...props }: React.ComponentProps<"div">) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -120,14 +120,7 @@ export function LoginForm({ className, onSwitchToSignup, ...props }: React.Compo
                 </Button>
               </div>
               <div className="text-center text-sm">
-                Don&apos;t have an account?{" "}
-                <button 
-                  type="button"
-                  onClick={onSwitchToSignup}
-                  className="underline underline-offset-4 text-primary hover:opacity-80"
-                >
-                  Sign up
-                </button>
+                Need help? <a href="#" className="underline underline-offset-4 text-primary hover:opacity-80">Contact support</a>
               </div>
             </div>
           </form>
