@@ -1,17 +1,150 @@
+import React, { useState } from 'react';
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from "@/hooks/use-toast";
 import authHero from "@/assets/auth-hero.jpg"
 
 export function LoginForm({ className, onSwitchToSignup, ...props }: React.ComponentProps<"div"> & { onSwitchToSignup?: () => void }) {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [resetEmail, setResetEmail] = useState('');
+  const { toast } = useToast();
+
+  const handleSignIn = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) {
+        toast({
+          title: "Sign in failed",
+          description: error.message,
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Success",
+          description: "You have been signed in successfully.",
+        });
+        // Navigation will be handled by the auth provider
+      }
+    } catch (error) {
+      toast({
+        title: "An error occurred",
+        description: "Please try again later.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
+        redirectTo: `${window.location.origin}/auth?reset=true`,
+      });
+
+      if (error) {
+        toast({
+          title: "Reset failed",
+          description: error.message,
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Reset email sent",
+          description: "Check your email for password reset instructions.",
+        });
+        setShowForgotPassword(false);
+        setResetEmail('');
+      }
+    } catch (error) {
+      toast({
+        title: "An error occurred",
+        description: "Please try again later.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  if (showForgotPassword) {
+    return (
+      <div className={cn("flex flex-col gap-6", className)} {...props}>
+        <Card className="overflow-hidden glass border-white/10">
+          <CardContent className="grid p-0 md:grid-cols-2">
+            <div className="p-8 bg-black/40">
+              <form onSubmit={handleForgotPassword} className="flex flex-col gap-6 max-w-sm">
+                <div className="flex flex-col text-left">
+                  <h1 className="text-2xl font-bold text-gradient mb-2">Reset password</h1>
+                  <p className="text-muted-foreground">Enter your email to receive reset instructions</p>
+                </div>
+                
+                <div className="grid gap-2">
+                  <Label htmlFor="reset-email" className="text-foreground">Email</Label>
+                  <Input 
+                    id="reset-email" 
+                    type="email" 
+                    placeholder="m@example.com" 
+                    required 
+                    value={resetEmail}
+                    onChange={(e) => setResetEmail(e.target.value)}
+                    className="bg-black/60 border-white/20 text-foreground placeholder:text-muted-foreground focus:border-primary" 
+                  />
+                </div>
+
+                <Button type="submit" disabled={isLoading} className="w-full button-gradient text-white font-medium">
+                  {isLoading ? "Sending..." : "Send reset email"}
+                </Button>
+
+                <div className="text-center text-sm text-muted-foreground">
+                  Remember your password?{" "}
+                  <button 
+                    type="button"
+                    onClick={() => setShowForgotPassword(false)}
+                    className="text-primary hover:underline"
+                  >
+                    Back to login
+                  </button>
+                </div>
+              </form>
+            </div>
+            
+            <div className="relative hidden md:block">
+              <img
+                src={authHero}
+                alt="Abstract gradient design"
+                className="absolute inset-0 h-full w-full object-cover"
+              />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
       <Card className="overflow-hidden glass border-white/10">
         <CardContent className="grid p-0 md:grid-cols-2">
           <div className="p-8 bg-black/40">
-            <div className="flex flex-col gap-6 max-w-sm">
+            <form onSubmit={handleSignIn} className="flex flex-col gap-6 max-w-sm">
               <div className="flex flex-col text-left">
                 <h1 className="text-2xl font-bold text-gradient mb-2">Welcome back</h1>
                 <p className="text-muted-foreground">Login to your account</p>
@@ -25,6 +158,8 @@ export function LoginForm({ className, onSwitchToSignup, ...props }: React.Compo
                     type="email" 
                     placeholder="m@example.com" 
                     required 
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
                     className="bg-black/60 border-white/20 text-foreground placeholder:text-muted-foreground focus:border-primary" 
                   />
                 </div>
@@ -32,21 +167,27 @@ export function LoginForm({ className, onSwitchToSignup, ...props }: React.Compo
                 <div className="grid gap-2">
                   <div className="flex items-center justify-between">
                     <Label htmlFor="password" className="text-foreground">Password</Label>
-                    <a href="#" className="text-sm text-primary hover:underline">
+                    <button 
+                      type="button"
+                      onClick={() => setShowForgotPassword(true)}
+                      className="text-sm text-primary hover:underline"
+                    >
                       Forgot your password?
-                    </a>
+                    </button>
                   </div>
                   <Input 
                     id="password" 
                     type="password" 
                     required 
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
                     className="bg-black/60 border-white/20 text-foreground focus:border-primary" 
                   />
                 </div>
               </div>
 
-              <Button type="submit" className="w-full button-gradient text-white font-medium">
-                Login
+              <Button type="submit" disabled={isLoading} className="w-full button-gradient text-white font-medium">
+                {isLoading ? "Signing in..." : "Login"}
               </Button>
 
               <div className="relative text-center text-sm">
@@ -86,7 +227,7 @@ export function LoginForm({ className, onSwitchToSignup, ...props }: React.Compo
                   Sign up
                 </button>
               </div>
-            </div>
+            </form>
           </div>
           
           <div className="relative hidden md:block">
