@@ -1,73 +1,74 @@
-# Welcome to your Lovable project
+# Absolute Zero Forge AI
 
-## Project info
+Production-ready React + TypeScript application built with Vite and Tailwind CSS.
 
-**URL**: https://lovable.dev/projects/16ea2fbe-9b90-4e68-92fa-d8149422df7b
+## Quick start
 
-## How can I edit this code?
-
-There are several ways of editing your application.
-
-**Use Lovable**
-
-Simply visit the [Lovable Project](https://lovable.dev/projects/16ea2fbe-9b90-4e68-92fa-d8149422df7b) and start prompting.
-
-Changes made via Lovable will be committed automatically to this repo.
-
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
+```bash
+git clone <your-repository-url>
+cd absolute-zero-forge-ai
+npm install
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+App URL: `http://localhost:5173`
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+## Prerequisites
 
-**Use GitHub Codespaces**
+- Node.js 20+
+- npm 10+
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+## Build and run in production mode
 
-## What technologies are used for this project?
+```bash
+npm run build
+npm run start
+```
 
-This project is built with:
+Preview URL: `http://localhost:4173`
 
-- Vite
+## Quality checks
+
+```bash
+npm run lint
+npm run typecheck
+npm run check
+```
+
+## Docker (recommended for deployment)
+
+```bash
+docker build -t absolute-zero-forge-ai:latest .
+docker run --rm -p 8080:80 absolute-zero-forge-ai:latest
+```
+
+URL: `http://localhost:8080`
+
+### Docker Compose
+
+```bash
+docker compose up --build -d
+```
+
+## Create a downloadable release archive
+
+You can generate a release tarball from the current commit:
+
+```bash
+./scripts/create-release.sh
+```
+
+This creates `releases/absolute-zero-forge-ai-<version>.tar.gz`.
+
+## Troubleshooting
+
+- If dependency install fails due peer conflicts, this project sets `legacy-peer-deps=true` in `.npmrc`.
+- If your environment blocks `registry.npmjs.org`, configure your internal npm registry and proxy before running `npm install`.
+
+## Tech stack
+
+- React 18
 - TypeScript
-- React
-- shadcn-ui
+- Vite
 - Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/16ea2fbe-9b90-4e68-92fa-d8149422df7b) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+- Radix UI + shadcn/ui patterns
