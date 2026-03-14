@@ -71,3 +71,67 @@ Yes, you can!
 To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
 
 Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+
+
+## Portable local build (Windows/macOS/Linux)
+
+Create a static portable package that can be moved to another machine:
+
+```sh
+npm install
+npm run build:portable
+```
+
+This outputs:
+- `portable-build/` with:
+  - `app/` (compiled application files)
+  - `start-windows.bat` (double-click to run on Windows)
+  - `start-unix.sh` (run on macOS/Linux)
+- `portable-build.zip` so you can copy/download one file and run it on another machine
+
+> Note: This project is a web app, so the portable artifact is a static bundle served locally rather than a native `.exe` desktop binary.
+
+
+## Step-by-step install and run guide
+
+### Option A: Run directly from source (recommended for development)
+
+1. **Install Node.js 20+**
+   - Download from: https://nodejs.org/
+2. **Open a terminal in the project folder**
+3. **Install dependencies**
+   ```sh
+   npm install
+   ```
+4. **Start the app in development mode**
+   ```sh
+   npm run dev
+   ```
+5. **Open the URL shown in the terminal** (usually `http://localhost:8080`)
+
+### Option B: Build a portable package (for another machine)
+
+1. **Install dependencies**
+   ```sh
+   npm install
+   ```
+2. **Create portable build + zip**
+   ```sh
+   npm run build:portable
+   ```
+3. You will get:
+   - `portable-build/`
+   - `portable-build.zip`
+4. **Copy `portable-build.zip` to the target machine** and extract it.
+5. In the extracted folder:
+   - **Windows:** double-click `start-windows.bat`
+   - **macOS/Linux:** run `./start-unix.sh`
+6. Open `http://localhost:4173`
+
+### Troubleshooting
+
+- If install fails due to dependency resolution, ensure `npm` reads the local `.npmrc` in this repo.
+- If a port is already in use, pass a custom port:
+  - Windows: `start-windows.bat 5000`
+  - macOS/Linux: `./start-unix.sh 5000`
+- If Python is missing on the target machine, install Python 3 (the launchers use Python’s built-in HTTP server).
